@@ -203,7 +203,11 @@ function getApplicationById(id, userId) {
 }
 
 function createApplication(fields) {
-  const app = { ...fields, created_at: now(), updated_at: now() };
+  // status_updated_at tracks ONLY status changes (see updateApplication),
+  // separately from updated_at which changes on any edit — this is what
+  // lets the smart-reminder system measure "days since this actually
+  // moved stage" without being reset by an unrelated notes edit.
+  const app = { ...fields, status_updated_at: now(), created_at: now(), updated_at: now() };
   data.applications.push(app);
   save();
   return clone(app);

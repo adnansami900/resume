@@ -1,6 +1,7 @@
 // ApplicationTracker.jsx - Track job applications through a visual pipeline
 
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Card, Alert, GradientBanner } from '../components/UI';
 import api from '../services/api';
@@ -15,16 +16,43 @@ const STATUS_COLOURS = {
 
 const EMPTY_FORM = { companyName: '', jobTitle: '', jobDescription: '', status: 'Saved', notes: '' };
 
+// Quick-action buttons offered per reminder type, mapped to a target status.
+const REMINDER_ACTIONS = {
+  stale_Saved:     [{ label: 'Mark Applied', status: 'Applied' }],
+  stale_Applied:   [{ label: 'Mark Interview', status: 'Interview' }, { label: 'Mark Rejected', status: 'Rejected' }],
+  followup:        [{ label: 'Got the offer', status: 'Offer' }, { label: 'Not selected', status: 'Rejected' }],
+};
+
+function daysAgo(dateStr) {
+  if (!dateStr) return null;
+  const t = new Date(dateStr).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+
 export default function ApplicationTracker() {
+  const location = useLocation();
   const [applications, setApplications] = useState([]);
+  const [reminders, setReminders]       = useState([]);
   const [showForm, setShowForm]         = useState(false);
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [error, setError]               = useState('');
 
-  const load = () =>
+  const load = () => {
     api.get('/applications').then(res => setApplications(res.data.applications));
+    api.get('/applications/reminders').then(res => setReminders(res.data.reminders)).catch(() => setReminders([]));
+  };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // Arrived here from "Track this application" on the Job Matches page —
+    // open the form pre-filled with the listing's details.
+    if (location.state?.prefill) {
+      setForm({ ...EMPTY_FORM, ...location.state.prefill });
+      setShowForm(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -41,6 +69,17 @@ export default function ApplicationTracker() {
 
   const moveStatus = async (id, status) => {
     await api.put(`/applications/${id}`, { status });
+    load();
+  };
+
+  const setInterviewDate = async (id, interviewDate) => {
+    await api.put(`/applications/${id}`, { interviewDate });
+    load();
+  };
+
+  const snooze = async (id, days = 3) => {
+    const until = new Date(Date.now() + days * 86400000).toISOString();
+    await api.put(`/applications/${id}`, { reminderSnoozedUntil: until });
     load();
   };
 
@@ -74,6 +113,40 @@ export default function ApplicationTracker() {
         subtitle="Move cards between columns as your applications progress."
       />
 
+      {/* Smart reminders */}
+      {reminders.length > 0 && (
+        <Card title="🔔 Reminders" style={{ marginBottom: 20 }}>
+          {reminders.map((r, i) => {
+            const app = applications.find(a => a.id === r.applicationId);
+            const actionKey = r.type === 'stale' ? `stale_${app?.status}` : r.type;
+            const actions = REMINDER_ACTIONS[actionKey] || [];
+            return (
+              <div key={i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                gap: 12, padding: '10px 0',
+                borderBottom: i < reminders.length - 1 ? '1px solid var(--border)' : 'none',
+                flexWrap: 'wrap',
+              }}>
+                <div style={{ fontSize: 13, color: r.severity === 'warning' ? '#d97706' : 'var(--text)' }}>
+                  {r.severity === 'warning' ? '⚠️' : 'ℹ️'} {r.message}
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  {actions.map(a => (
+                    <button key={a.status} className="btn btn-secondary btn-sm"
+                      onClick={() => moveStatus(r.applicationId, a.status)}>
+                      {a.label}
+                    </button>
+                  ))}
+                  <button className="btn btn-ghost btn-sm" onClick={() => snooze(r.applicationId, 3)}>
+                    Snooze 3d
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      )}
+
       {/* Add application form */}
       {showForm && (
         <Card title="➕ New Application" style={{ marginBottom: 20 }}>
@@ -105,6 +178,13 @@ export default function ApplicationTracker() {
                   onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Referral, deadline, etc." />
               </div>
             </div>
+            {form.jobDescription && (
+              <div className="form-group">
+                <label className="form-label">Job description (from Job Matches)</label>
+                <textarea className="form-textarea" value={form.jobDescription} readOnly
+                  style={{ minHeight: 70, opacity: 0.8 }} />
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-primary" type="submit">💾 Save</button>
               <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
@@ -133,33 +213,53 @@ export default function ApplicationTracker() {
               </div>
             )}
 
-            {grouped[status].map(app => (
-              <div className="kanban-card" key={app.id}>
-                <div className="kanban-card-title">{app.job_title}</div>
-                <div className="kanban-card-sub">🏢 {app.company_name}</div>
-                {app.notes && (
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8, fontStyle: 'italic' }}>
-                    {app.notes}
-                  </div>
-                )}
-                {/* Status change dropdown */}
-                <select
-                  className="form-select"
-                  value={app.status}
-                  onChange={e => moveStatus(app.id, e.target.value)}
-                  style={{ fontSize: 12, padding: '5px 8px', marginBottom: 8 }}
-                >
-                  {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => remove(app.id)}
-                  style={{ width: '100%', color: '#ef4444', borderColor: '#fca5a5', fontSize: 12 }}
-                >
-                  🗑️ Remove
-                </button>
-              </div>
-            ))}
+            {grouped[status].map(app => {
+              const idleDays = daysAgo(app.status_updated_at || app.updated_at);
+              return (
+                <div className="kanban-card" key={app.id}>
+                  <div className="kanban-card-title">{app.job_title}</div>
+                  <div className="kanban-card-sub">🏢 {app.company_name}</div>
+                  {app.notes && (
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8, fontStyle: 'italic' }}>
+                      {app.notes}
+                    </div>
+                  )}
+                  {idleDays !== null && (
+                    <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+                      🕓 {idleDays === 0 ? 'Updated today' : `${idleDays} day${idleDays === 1 ? '' : 's'} in this stage`}
+                    </div>
+                  )}
+                  {app.status === 'Interview' && (
+                    <div className="form-group" style={{ marginBottom: 8 }}>
+                      <label className="form-label" style={{ fontSize: 10.5 }}>Interview date</label>
+                      <input
+                        type="date"
+                        className="form-input"
+                        style={{ fontSize: 12, padding: '5px 8px' }}
+                        value={app.interview_date ? app.interview_date.slice(0, 10) : ''}
+                        onChange={e => setInterviewDate(app.id, e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {/* Status change dropdown */}
+                  <select
+                    className="form-select"
+                    value={app.status}
+                    onChange={e => moveStatus(app.id, e.target.value)}
+                    style={{ fontSize: 12, padding: '5px 8px', marginBottom: 8 }}
+                  >
+                    {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => remove(app.id)}
+                    style={{ width: '100%', color: '#ef4444', borderColor: '#fca5a5', fontSize: 12 }}
+                  >
+                    🗑️ Remove
+                  </button>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>

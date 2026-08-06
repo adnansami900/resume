@@ -12,6 +12,7 @@ import ATSScan from './pages/ATSScan';
 import AISuggestions from './pages/AISuggestions';
 import AITailoring from './pages/AITailoring';
 import ApplicationTracker from './pages/ApplicationTracker';
+import JobRecommendations from './pages/JobRecommendations';
 import ExportResume from './pages/ExportResume';
 import Settings from './pages/Settings';
 import { Spinner } from './components/UI';
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/ats-scan"       element={<ProtectedRoute><ATSScan /></ProtectedRoute>} />
           <Route path="/ai-suggestions" element={<ProtectedRoute><AISuggestions /></ProtectedRoute>} />
           <Route path="/ai-tailoring"   element={<ProtectedRoute><AITailoring /></ProtectedRoute>} />
+          <Route path="/job-matches"    element={<ProtectedRoute><JobRecommendations /></ProtectedRoute>} />
           <Route path="/applications"   element={<ProtectedRoute><ApplicationTracker /></ProtectedRoute>} />
           <Route path="/export"         element={<ProtectedRoute><ExportResume /></ProtectedRoute>} />
           <Route path="/settings"       element={<ProtectedRoute><Settings /></ProtectedRoute>} />

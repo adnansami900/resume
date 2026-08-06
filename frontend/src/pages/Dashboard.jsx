@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { Card, Spinner, GradientBanner, ProgressBar } from '../components/UI';
+import { Card, Spinner, GradientBanner, ProgressBar, Alert } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -17,7 +17,7 @@ const STATUS_COLOURS = {
 const QUICK_ACTIONS = [
   { to: '/resume-builder', icon: '📝', label: 'Build Resume',     colour: '#6366f1', desc: 'Create or edit your resume' },
   { to: '/ats-scan',       icon: '🎯', label: 'Run ATS Scan',     colour: '#ec4899', desc: 'Check your match score'    },
-  { to: '/ai-suggestions', icon: '💡', label: 'AI Suggestions',   colour: '#06b6d4', desc: 'Improve your writing'      },
+  { to: '/job-matches',    icon: '🧭', label: 'Job Matches',      colour: '#f59e0b', desc: 'See jobs to target'         },
   { to: '/applications',   icon: '📋', label: 'Track Jobs',       colour: '#10b981', desc: 'Manage applications'        },
 ];
 
@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [resumes, setResumes]     = useState([]);
   const [appStats, setAppStats]   = useState(null);
   const [quota, setQuota]         = useState(null);
+  const [reminderCount, setReminderCount] = useState(0);
   const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
@@ -34,11 +35,13 @@ export default function Dashboard() {
       api.get('/resumes'),
       api.get('/applications/stats/summary'),
       api.get('/ai/quota'),
+      api.get('/applications/reminders').catch(() => ({ data: { reminders: [] } })),
     ])
-      .then(([resumesRes, statsRes, quotaRes]) => {
+      .then(([resumesRes, statsRes, quotaRes, remindersRes]) => {
         setResumes(resumesRes.data.resumes);
         setAppStats(statsRes.data.summary);
         setQuota(quotaRes.data);
+        setReminderCount(remindersRes.data.reminders.length);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -59,6 +62,15 @@ export default function Dashboard() {
         title="Ready to land your next role?"
         subtitle="Use the tools below to build a standout resume and track your applications."
       />
+
+      {/* Smart reminder nudge */}
+      {reminderCount > 0 && (
+        <Link to="/applications" style={{ textDecoration: 'none' }}>
+          <Alert type="warning" style={{ marginBottom: 20, cursor: 'pointer' }}>
+            You have {reminderCount} application reminder{reminderCount !== 1 ? 's' : ''} — tap to review.
+          </Alert>
+        </Link>
+      )}
 
       {/* Stat cards row */}
       <div className="grid-4" style={{ marginBottom: 24 }}>

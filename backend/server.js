@@ -37,6 +37,7 @@ const atsRoutes         = require('./routes/ats');
 const aiRoutes          = require('./routes/ai');
 const applicationRoutes = require('./routes/applications');
 const exportRoutes      = require('./routes/export');
+const jobRoutes          = require('./routes/jobs');
 
 const app  = express();
 const PORT = Number(process.env.PORT);
@@ -88,6 +89,7 @@ app.use('/api/ats',          atsRoutes);
 app.use('/api/ai',           aiRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/export',       exportRoutes);
+app.use('/api/jobs',         jobRoutes);
 
 // ---------- 404 ----------
 app.use((req, res) => res.status(404).json({ error: `Not found: ${req.method} ${req.path}` }));

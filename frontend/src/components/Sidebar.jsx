@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/ats-scan',       label: 'ATS Scan',           icon: '🎯' },
   { to: '/ai-suggestions', label: 'AI Suggestions',     icon: '💡' },
   { to: '/ai-tailoring',   label: 'AI Tailoring',       icon: '✂️' },
+  { to: '/job-matches',    label: 'Job Matches',        icon: '🧭' },
   { to: '/applications',   label: 'Job Tracker',        icon: '📋' },
   { to: '/export',         label: 'Export Resume',      icon: '📤' },
   { to: '/settings',       label: 'Settings',           icon: '⚙️' },
