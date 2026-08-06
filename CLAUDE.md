@@ -88,9 +88,23 @@ Uploaded files (PDF/DOCX/TXT, 5MB max) must agree on three independent signals b
 
 Pure, offline, no AI required — `scoreResumeAgainstJob(resume, jobDescription)` is the reusable core: keyword extraction/matching, a weighted 0–100 score (keyword 30%, skills 20%, sections 15%, contact 10%, action verbs 10%, achievements 10%, formatting 5%), all sub-scores and the total run through `clampScore()`. This function is also the basis `aiService.js` uses for its local (non-Gemini) summary/tailoring fallbacks — reuse it rather than re-deriving keyword matching elsewhere.
 
+### Resume templates & multi-format export
+
+Presentation is a property of the resume record (`resume.template`, defaults to `'modern'`), not a global setting — each resume can use a different design and switching changes no user data.
+
+- **`backend/utils/templates.js`** is the single source of truth: a registry of every design (`id`, `name`, `category: 'ats'|'designer'`, `layout`, `font`, `accent`, `featured`, `atsSafe`). The renderer, the create/update validation, and the frontend picker (which fetches it via `GET /api/export/templates`) all read from here. Adding a template = one entry here + one CSS/layout branch in `renderHtml.js`. Nothing else changes. Always coerce untrusted template values with `coerceTemplate()` before they reach the renderer (done in `routes/resume.js` POST/PUT).
+- **`backend/utils/renderHtml.js`** — `renderResumeHtml(resume, templateId)` turns a resume + template into a complete, self-contained HTML document (inline CSS, all user data HTML-escaped via `esc()`). This ONE function powers the PDF, the `.html` export, and the live preview — so the preview is byte-identical to the download, no drift.
+- **`backend/utils/htmlToPdf.js`** — renders that HTML to a PDF via the environment's Chromium (playwright-core, `findChromium()` locates the binary — prefers `headless_shell`). It never hard-crashes: on missing/failed Chromium it throws a tagged error and the export route falls back to the legacy pdfkit `generatePDF` (same graceful-degradation philosophy as the AI features). `playwright-core` is a dependency but does **not** download a browser on install.
+- **`backend/routes/export.js`** — format dispatch at `GET /api/export/:id/:format` where format ∈ `pdf|docx|txt|html|json`; plus `GET /:id/preview` (inline HTML for the `<iframe>`) and `GET /templates`. **Route order matters**: the literal `/templates` and `/:id/preview` are declared before the generic `/:id/:format`. `?template=` overrides the stored template for one export.
+- Two ATS tiers: `atsSafe` (single-column, parse-clean) vs designer (richer, flagged with an "ATS risk" badge in the UI). `.txt`/`.json` emitters live in `exportResume.js`; the frontend picker (`components/TemplatePicker.jsx`) shows featured designs first and preview via `components/ResumePreview.jsx` (fetches HTML through `api.getPreviewHtml`, injects with `<iframe srcDoc>` so the JWT stays in the header).
+
+### Theming / dark mode
+
+`frontend/src/context/ThemeContext.jsx` holds the theme and writes `<html data-theme="light|dark">`; the choice is persisted to `localStorage` (OS `prefers-color-scheme` is the first-run default) and applied pre-paint in `index.js` to avoid a flash. The Settings "Appearance" card toggles it. `global.css` defines the light palette on `:root` and overrides it under `:root[data-theme="dark"]` — **style new UI with the CSS variables (`--bg`, `--surface`, `--border`, `--text`, `--text-muted`, `--primary-light`) or theme-aware helpers (`.soft-note`, `.alert-*`, `.badge-*`), never hardcoded hex backgrounds**, or it won't adapt.
+
 ### Route ordering gotcha
 
-In `routes/resume.js`, `POST /import` is declared *before* `GET /:id` — Express matches top-down, so if `/import` were declared after, it'd be swallowed by the `:id` param route.
+In `routes/resume.js`, `POST /import` is declared *before* `GET /:id` — Express matches top-down, so if `/import` were declared after, it'd be swallowed by the `:id` param route. The same rule applies in `routes/export.js` (see above).
 
 ### Frontend auth flow
 
@@ -98,6 +112,6 @@ In `routes/resume.js`, `POST /import` is declared *before* `GET /:id` — Expres
 
 ## Current state vs. planned work
 
-Only "Step 1 — Critical Fixes" from `IMPLEMENTATION_PLAN.md` is done (see `STEP1_CHANGES.md` for the diffs and rationale, `UPLOAD_FEATURE.md` for the resume-import feature). `IMPLEMENTATION_PLAN.md` lays out the architecture for everything not yet built: resume templates, job search portal, application tracker upgrade (5→8 statuses), ATS insights + interview questions, job recommendations, analytics dashboard, and an AI career coach. Read it before starting any of those — it specifies exact new files, the provider-interface pattern for job search, and the data-migration approach for the status pipeline change.
+"Step 1 — Critical Fixes" from `IMPLEMENTATION_PLAN.md` is done (see `STEP1_CHANGES.md`, `UPLOAD_FEATURE.md`). **"Step 2 — Resume Template System" is also done and extended** beyond the original single-column-only scope: 6 templates across two tiers (ATS-safe + designer), HTML→PDF rendering, live preview, and 5 export formats (PDF/DOCX/TXT/HTML/JSON) — see the "Resume templates & multi-format export" section above. A light/dark theme toggle was also added (see "Theming"). `IMPLEMENTATION_PLAN.md` lays out the architecture for everything not yet built: job search portal, application tracker upgrade (5→8 statuses), ATS insights + interview questions, job recommendations, analytics dashboard, and an AI career coach. Read it before starting any of those — it specifies exact new files, the provider-interface pattern for job search, and the data-migration approach for the status pipeline change.
 
 Known, deliberately-undone items (see `IMPLEMENTATION_PLAN.md` §11): JWT lives in `localStorage` (XSS-readable — tradeoff documented, not accidental); single JSON file means no multi-process scaling; no email verification/password reset; no automated tests; no pagination on resume/application lists.

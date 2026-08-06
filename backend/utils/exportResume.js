@@ -156,4 +156,104 @@ async function generateDOCX(resume) {
   return Packer.toBuffer(doc);
 }
 
-module.exports = { generatePDF, generateDOCX };
+// ==========================================================
+// Plain-text export (.txt)
+// The most ATS-safe format there is: linear, no styling, no columns.
+// Some job boards specifically ask you to paste plain text.
+// ==========================================================
+function generateTXT(resume) {
+  const skills = parseField(resume.skills).map(s => (typeof s === 'string' ? s : s.name)).filter(Boolean);
+  const certifications = parseField(resume.certifications).map(c => (typeof c === 'string' ? c : c.name)).filter(Boolean);
+  const education = parseField(resume.education);
+  const experience = parseField(resume.experience);
+  const projects = parseField(resume.projects);
+
+  const lines = [];
+  const rule = () => lines.push('='.repeat(60));
+  const heading = (t) => { lines.push('', t.toUpperCase(), '-'.repeat(t.length)); };
+
+  lines.push(resume.full_name || 'Your Name');
+  const contact = [resume.email, resume.phone, resume.location, resume.linkedin].filter(Boolean);
+  if (contact.length) lines.push(contact.join(' | '));
+  rule();
+
+  if (resume.summary) { heading('Professional Summary'); lines.push(resume.summary); }
+
+  if (experience.length) {
+    heading('Work Experience');
+    experience.forEach(exp => {
+      lines.push(`${exp.title || ''}${exp.company ? ' — ' + exp.company : ''}`);
+      lines.push(`${exp.startDate || ''} - ${exp.endDate || 'Present'}`);
+      (exp.bullets || []).filter(Boolean).forEach(b => lines.push(`  * ${b}`));
+      lines.push('');
+    });
+  }
+
+  if (education.length) {
+    heading('Education');
+    education.forEach(ed => {
+      lines.push(`${ed.degree || ''}${ed.institution ? ' — ' + ed.institution : ''}`);
+      lines.push(`${ed.startDate || ''} - ${ed.endDate || ''}`);
+    });
+  }
+
+  if (skills.length) { heading('Skills'); lines.push(skills.join(', ')); }
+
+  if (projects.length) {
+    heading('Projects');
+    projects.forEach(p => {
+      lines.push(p.name || '');
+      if (p.description) lines.push(p.description);
+      lines.push('');
+    });
+  }
+
+  if (certifications.length) { heading('Certifications'); lines.push(certifications.join(', ')); }
+
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
+
+// ==========================================================
+// JSON export (.json)
+// A structured, re-importable dump loosely following the JSON Resume
+// schema (jsonresume.org). Useful for backups and interop.
+// ==========================================================
+function generateJSON(resume) {
+  const skills = parseField(resume.skills).map(s => (typeof s === 'string' ? s : s.name)).filter(Boolean);
+  const certifications = parseField(resume.certifications).map(c => (typeof c === 'string' ? c : c.name)).filter(Boolean);
+
+  const data = {
+    basics: {
+      name: resume.full_name || '',
+      email: resume.email || '',
+      phone: resume.phone || '',
+      location: { address: resume.location || '' },
+      profiles: resume.linkedin ? [{ network: 'LinkedIn/Portfolio', url: resume.linkedin }] : [],
+      summary: resume.summary || '',
+    },
+    work: parseField(resume.experience).map(exp => ({
+      position: exp.title || '',
+      name: exp.company || '',
+      startDate: exp.startDate || '',
+      endDate: exp.endDate || '',
+      highlights: (exp.bullets || []).filter(Boolean),
+    })),
+    education: parseField(resume.education).map(ed => ({
+      studyType: ed.degree || '',
+      institution: ed.institution || '',
+      startDate: ed.startDate || '',
+      endDate: ed.endDate || '',
+    })),
+    projects: parseField(resume.projects).map(p => ({
+      name: p.name || '',
+      description: p.description || '',
+    })),
+    skills: skills.map(name => ({ name })),
+    certificates: certifications.map(name => ({ name })),
+    meta: { template: resume.template || 'modern', generatedAt: new Date().toISOString() },
+  };
+
+  return JSON.stringify(data, null, 2);
+}
+
+module.exports = { generatePDF, generateDOCX, generateTXT, generateJSON };

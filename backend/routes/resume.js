@@ -9,6 +9,7 @@ const { uploadLimiter } = require('../middleware/rateLimit');
 const { extractText } = require('../utils/extractText');
 const { parseResumeText } = require('../utils/resumeParser');
 const { MAX_BYTES } = require('../utils/fileValidation');
+const { coerceTemplate } = require('../utils/templates');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -131,6 +132,9 @@ router.post('/', (req, res) => {
     skills: data.skills || '[]',
     projects: data.projects || '[]',
     certifications: data.certifications || '[]',
+    // Validate against the template whitelist so only known designs
+    // can ever reach the renderer.
+    template: coerceTemplate(data.template),
   });
   res.status(201).json({ resume });
 });
@@ -153,6 +157,7 @@ router.put('/:id', (req, res) => {
     skills:         data.skills         ?? existing.skills,
     projects:       data.projects       ?? existing.projects,
     certifications: data.certifications ?? existing.certifications,
+    template:       data.template !== undefined ? coerceTemplate(data.template) : (existing.template || 'modern'),
   });
   res.json({ resume: updated });
 });

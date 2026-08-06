@@ -57,4 +57,42 @@ api.importResume = async (file) => {
   return res.data;
 };
 
+// ---- Templates & export helpers ----
+
+// List available resume design templates (the registry lives on the backend).
+api.getTemplates = async () => {
+  const res = await api.get('/export/templates');
+  return res.data.templates;
+};
+
+// Fetch the rendered HTML for the live preview (auth handled by the
+// axios interceptor, so we can safely inject it via <iframe srcDoc>).
+api.getPreviewHtml = async (resumeId, template) => {
+  const res = await api.get(`/export/${resumeId}/preview`, {
+    params: template ? { template } : {},
+    responseType: 'text',
+    transformResponse: [(d) => d], // keep raw HTML string
+  });
+  return res.data;
+};
+
+// Download a resume in a given format/template and trigger a save dialog.
+api.downloadResume = async (resumeId, format, template) => {
+  const token = localStorage.getItem('token');
+  const qs = template ? `?template=${encodeURIComponent(template)}` : '';
+  const res = await fetch(`${BASE}/export/${resumeId}/${format}${qs}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Download failed');
+  const blob = await res.blob();
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `resume.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
 export default api;

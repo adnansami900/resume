@@ -473,7 +473,7 @@ button { font-family: inherit; cursor: pointer; }
 .score-ring {
   width: 110px; height: 110px;
   border-radius: 50%;
-  background: conic-gradient(var(--score-color) var(--score-deg), #e2e8f0 0deg);
+  background: conic-gradient(var(--score-color) var(--score-deg), var(--border) 0deg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -675,6 +675,28 @@ button { font-family: inherit; cursor: pointer; }
   .kanban-board { flex-direction: column; }
 }
 
+/* ---- Soft notice boxes (theme-aware) ---- */
+.soft-note { border-radius: 10px; padding: 12px 16px; font-size: 13px; }
+.soft-note.ok   { background: #f0fdf4; color: #166534; }
+.soft-note.warn { background: #fef3c7; color: #92400e; }
+:root[data-theme="dark"] .soft-note.ok   { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+:root[data-theme="dark"] .soft-note.warn { background: rgba(245,158,11,0.15); color: #fcd34d; }
+
+/* ---- Toggle switch (used for the dark-mode setting) ---- */
+.switch { position: relative; display: inline-block; width: 52px; height: 28px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider {
+  position: absolute; inset: 0; cursor: pointer;
+  background: var(--border); border-radius: 28px; transition: background var(--transition);
+}
+.switch .slider::before {
+  content: ''; position: absolute; height: 22px; width: 22px; left: 3px; top: 3px;
+  background: #fff; border-radius: 50%; transition: transform var(--transition);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.switch input:checked + .slider { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+.switch input:checked + .slider::before { transform: translateX(24px); }
+
 /* ---- Animations ---- */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -682,13 +704,71 @@ button { font-family: inherit; cursor: pointer; }
 }
 .animate-in { animation: fadeIn 0.3s ease; }
 
-/* ---- Dark mode support ---- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f172a; --surface: #1e293b; --border: #334155;
-    --text: #f1f5f9; --text-muted: #94a3b8;
-  }
+/* ====================================================
+   DARK MODE
+   Driven by <html data-theme="dark"> (set by ThemeContext / the
+   Settings toggle). Everything below re-maps the palette variables
+   and patches the handful of places that hardcode a light colour, so
+   every surface, chip, alert and input reads correctly in both themes.
+   ==================================================== */
+:root[data-theme="dark"] {
+  --primary-light: #312e81;     /* dark indigo tint for chips/tags/info backgrounds */
+  --bg: #0b1120;
+  --surface: #1e293b;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --shadow: 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-lg: 0 12px 28px rgba(0,0,0,0.6);
 }
+
+/* A secondary surface (was #fafafa / #f8fafc in light mode) */
+:root[data-theme="dark"] .stat-card {
+  background: linear-gradient(135deg, #1e293b, #172033);
+}
+:root[data-theme="dark"] .kanban-column { background: #0f172a; }
+:root[data-theme="dark"] .kanban-card,
+:root[data-theme="dark"] .score-ring-inner,
+:root[data-theme="dark"] .resume-section { background: var(--surface); }
+:root[data-theme="dark"] .repeater-item { background: #0f172a; }
+
+/* Upload dropzone */
+:root[data-theme="dark"] .upload-area {
+  background: #0f172a;
+  border-color: var(--border);
+}
+:root[data-theme="dark"] .upload-area:hover,
+:root[data-theme="dark"] .upload-area.drag-over {
+  background: #312e81;
+  border-color: var(--primary);
+}
+
+/* Chips / tags: keep readable indigo text on the dark tint */
+:root[data-theme="dark"] .tag,
+:root[data-theme="dark"] .chip,
+:root[data-theme="dark"] .info-box { color: #c7d2fe; }
+:root[data-theme="dark"] .tag { border-color: rgba(129,140,248,0.35); }
+:root[data-theme="dark"] .btn-secondary:hover,
+:root[data-theme="dark"] .btn-ghost:hover { color: #c7d2fe; }
+
+/* Alerts: translucent tinted backgrounds instead of pale pastels */
+:root[data-theme="dark"] .alert-error   { background: rgba(239,68,68,0.15);  color: #fca5a5; border-color: rgba(239,68,68,0.35); }
+:root[data-theme="dark"] .alert-success { background: rgba(16,185,129,0.15); color: #6ee7b7; border-color: rgba(16,185,129,0.35); }
+:root[data-theme="dark"] .alert-info    { background: rgba(59,130,246,0.15); color: #93c5fd; border-color: rgba(59,130,246,0.35); }
+:root[data-theme="dark"] .alert-warning { background: rgba(245,158,11,0.15); color: #fcd34d; border-color: rgba(245,158,11,0.35); }
+
+/* Badges: darker fills so light chips don't glow on dark cards */
+:root[data-theme="dark"] .badge-gray   { background: #334155; color: #cbd5e1; }
+:root[data-theme="dark"] .badge-blue   { background: rgba(59,130,246,0.2);  color: #93c5fd; }
+:root[data-theme="dark"] .badge-green  { background: rgba(16,185,129,0.2);  color: #6ee7b7; }
+:root[data-theme="dark"] .badge-yellow { background: rgba(245,158,11,0.2);  color: #fcd34d; }
+:root[data-theme="dark"] .badge-red    { background: rgba(239,68,68,0.2);   color: #fca5a5; }
+:root[data-theme="dark"] .badge-purple { background: rgba(139,92,246,0.2);  color: #c4b5fd; }
+:root[data-theme="dark"] .badge-pink   { background: rgba(236,72,153,0.2);  color: #f9a8d4; }
+
+/* Scrollbar */
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #475569; }
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
 /* ---- Resume builder repeater items ---- */
 .repeater-item {

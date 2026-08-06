@@ -5,10 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Card, Alert, GradientBanner, ProgressBar } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import api from '../services/api';
 
 export default function Settings() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [quota, setQuota]       = useState(null);
   const [name, setName]         = useState(user?.name || '');
@@ -82,6 +84,29 @@ export default function Settings() {
 
       <div className="grid-2">
 
+        {/* Appearance / dark mode */}
+        <Card title="🎨 Appearance">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
+                {theme === 'dark' ? '🌙 Dark mode' : '☀️ Light mode'}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Switch between light and dark themes. Your choice is remembered on this device.
+              </div>
+            </div>
+            <label className="switch" title="Toggle dark mode">
+              <input
+                type="checkbox"
+                checked={theme === 'dark'}
+                onChange={toggleTheme}
+                aria-label="Toggle dark mode"
+              />
+              <span className="slider" />
+            </label>
+          </div>
+        </Card>
+
         {/* Profile name update */}
         <Card title="👤 Profile">
           <div className="form-group">
@@ -110,18 +135,12 @@ export default function Settings() {
                 max={quota.limit}
                 colour={quota.remaining <= 3 ? '#ef4444' : undefined}
               />
-              <div style={{
-                marginTop: 14,
-                padding: '12px 16px',
-                background: quota.remaining > 5 ? '#f0fdf4' : '#fef3c7',
-                borderRadius: 10, fontSize: 13,
-                color: quota.remaining > 5 ? '#166534' : '#92400e',
-              }}>
+              <div className={`soft-note ${quota.remaining > 5 ? 'ok' : 'warn'}`} style={{ marginTop: 14 }}>
                 {quota.remaining > 5
                   ? `✅ You have ${quota.remaining} credits remaining.`
                   : `⚠️ Only ${quota.remaining} credits left! Top-ups coming soon.`}
               </div>
-              <div style={{ marginTop: 14, fontSize: 13, color: '#64748b' }}>
+              <div style={{ marginTop: 14, fontSize: 13, color: 'var(--text-muted)' }}>
                 Each AI suggestion, bullet rewrite, or tailoring uses 1 credit.
               </div>
             </>

@@ -10,12 +10,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, Alert, Spinner } from '../components/UI';
+import TemplatePicker from '../components/TemplatePicker';
+import ResumePreview from '../components/ResumePreview';
 import api from '../services/api';
 
 const emptyResume = {
   title: 'My Resume',
   full_name: '', email: '', phone: '', location: '', linkedin: '',
   summary: '',
+  template: 'modern',
   education: [],
   experience: [],
   skills: [],
@@ -32,6 +35,8 @@ export default function ResumeBuilder() {
   const [message, setMessage] = useState(null);
   const [skillInput, setSkillInput] = useState('');
   const [certInput, setCertInput] = useState('');
+  // Bumped after every save so the live preview re-fetches the latest data.
+  const [previewKey, setPreviewKey] = useState(0);
 
   // --- Resume import state ---
   const [importing, setImporting] = useState(false);
@@ -55,6 +60,7 @@ export default function ResumeBuilder() {
     const r = res.data.resume;
     setForm({
       ...r,
+      template: r.template || 'modern',
       education: safeParse(r.education),
       experience: safeParse(r.experience),
       skills: safeParse(r.skills),
@@ -119,6 +125,7 @@ export default function ResumeBuilder() {
         setMessage({ type: 'success', text: 'Resume created successfully.' });
       }
       await loadResumes();
+      setPreviewKey((k) => k + 1);
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to save resume.' });
     } finally {
@@ -254,6 +261,25 @@ export default function ResumeBuilder() {
 
         {/* Editing form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Design template picker + live preview */}
+          <Card title="🎨 Design Template">
+            <TemplatePicker
+              value={form.template}
+              onChange={(id) => update('template', id)}
+            />
+            <div style={{ marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>👁️ Live Preview</span>
+                <span className="form-hint" style={{ margin: 0 }}>
+                  {activeId ? 'Reflects your last save. Press Save to refresh.' : 'Save to preview'}
+                </span>
+              </div>
+              <div style={{ maxWidth: 440, margin: '0 auto' }}>
+                <ResumePreview resumeId={activeId} template={form.template} refreshKey={previewKey} />
+              </div>
+            </div>
+          </Card>
+
           <Card title="Resume Title & Personal Info">
             <div className="form-group">
               <label className="form-label">Resume Title (for your own reference)</label>
