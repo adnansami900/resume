@@ -54,6 +54,25 @@ function estimateYearsExperience(experience) {
   return Math.round(totalYears * 10) / 10;
 }
 
+// Picks the most recent role by actual date, not array order. The
+// builder's "+ Add" always appends to the end (see ResumeBuilder.jsx),
+// so a user who enters an older job first and a newer one second would
+// otherwise have the OLDER title shown as their headline everywhere
+// this is used (render templates, the job-recommendation profile).
+function pickMostRecentExperience(experience) {
+  if (!experience.length) return null;
+  const ranked = experience.map(exp => {
+    const startYear = extractYear(exp.startDate) || 0;
+    // No end date is treated the same as "Present" — an ongoing role
+    // ranks ahead of anything with a definite end year.
+    const current = isCurrent(exp.endDate) || !exp.endDate;
+    const endYear = current ? Infinity : (extractYear(exp.endDate) || startYear);
+    return { exp, endYear, startYear };
+  });
+  ranked.sort((a, b) => b.endYear - a.endYear || b.startYear - a.startYear);
+  return ranked[0].exp;
+}
+
 function careerLevelFromYears(years) {
   if (years < 2) return 'Entry';
   if (years < 5) return 'Mid';
@@ -75,8 +94,8 @@ function buildResumeProfile(resume) {
     skills,
     yearsExperience,
     careerLevel: careerLevelFromYears(yearsExperience),
-    mostRecentTitle: experience[0]?.title || null,
+    mostRecentTitle: pickMostRecentExperience(experience)?.title || null,
   };
 }
 
-module.exports = { buildResumeProfile, estimateYearsExperience, careerLevelFromYears };
+module.exports = { buildResumeProfile, estimateYearsExperience, careerLevelFromYears, pickMostRecentExperience };

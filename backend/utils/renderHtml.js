@@ -16,6 +16,7 @@
 // ==========================================================
 
 const { getTemplate } = require('./templates');
+const { pickMostRecentExperience } = require('./resumeProfile');
 
 function parseField(field) {
   try {
@@ -50,8 +51,9 @@ function prepare(resume) {
     name: resume.full_name || 'Your Name',
     // Several designs show a professional title under the name. There is no
     // dedicated title field, so we use the most recent job title from the
-    // user's own experience — derived, never invented.
-    role: experience[0]?.title || '',
+    // user's own experience — derived, never invented. Picked by actual
+    // date, not array order (the builder appends new entries to the end).
+    role: pickMostRecentExperience(experience)?.title || '',
     email: resume.email || '',
     phone: resume.phone || '',
     location: resume.location || '',

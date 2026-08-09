@@ -21,6 +21,7 @@
 const { listAllJobs } = require('./jobProvider');
 const { scoreResumeAgainstJob } = require('./atsScoring');
 const { buildResumeProfile } = require('./resumeProfile');
+const { buildGroundTruth, checkTextAgainstTruth } = require('./truthCheck');
 
 const GEMINI_KEY   = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = () => process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -73,7 +74,7 @@ async function geminiReasons(resume, matches) {
   const prompt = `You are a career advisor. For each job below, write ONE short, specific sentence (max 25 words) explaining why this candidate's resume is a good match. Do NOT invent skills or experience not listed. Respond ONLY with strict JSON: {"reasons": {"<job id>": "<sentence>", ...}}.
 
 Candidate summary: ${resume.summary || 'N/A'}
-Candidate skills: ${matches.length ? '' : ''}${(resume._profileSkills || []).join(', ')}
+Candidate skills: ${(resume._profileSkills || []).join(', ')}
 
 Jobs:
 ${matches.map(m => `- id: ${m.job.id} | title: ${m.job.title} | matched skills: ${m.matchedSkills.join(', ') || 'none'} | job requires: ${m.job.requiredSkills.join(', ')}`).join('\n')}`;
@@ -125,8 +126,21 @@ async function recommendJobs(resume, { limit = 8 } = {}) {
   if (GEMINI_KEY) {
     try {
       const reasons = await geminiReasons({ ...resume, _profileSkills: profile.skills }, top);
-      top.forEach(m => { if (reasons[m.job.id]) m.reason = reasons[m.job.id]; });
-      source = 'gemini';
+      // Same safety net every other AI-generated string in this app goes
+      // through (see truthCheck.js): a hallucinated reason ("your AWS
+      // certification...") for a skill the candidate doesn't have would
+      // otherwise reach the user with nothing catching it. Any reason
+      // that fails the check is silently skipped — the template reason
+      // set above stays in place for that job.
+      const groundTruth = buildGroundTruth(resume);
+      let usedGemini = false;
+      top.forEach(m => {
+        const candidate = reasons[m.job.id];
+        if (!candidate) return;
+        const check = checkTextAgainstTruth(candidate, groundTruth, m.reason);
+        if (check.isSafe) { m.reason = check.cleanedText; usedGemini = true; }
+      });
+      if (usedGemini) source = 'gemini';
     } catch (e) {
       console.warn('Gemini job-recommendation reasons failed, using templates:', e.message);
     }

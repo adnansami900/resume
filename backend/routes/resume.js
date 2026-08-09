@@ -157,7 +157,11 @@ router.put('/:id', (req, res) => {
     skills:         data.skills         ?? existing.skills,
     projects:       data.projects       ?? existing.projects,
     certifications: data.certifications ?? existing.certifications,
-    template:       data.template !== undefined ? coerceTemplate(data.template) : (existing.template || 'modern'),
+    // Always run through coerceTemplate — even when no new template was
+    // sent — so a legacy/invalid stored value (e.g. one from a template
+    // later removed from the registry) gets normalized back to a valid
+    // id rather than being persisted through untouched.
+    template: coerceTemplate(data.template !== undefined ? data.template : existing.template),
   });
   res.json({ resume: updated });
 });
