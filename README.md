@@ -15,22 +15,26 @@ Fixed version of the React + Express resume builder. All bugs patched, features 
 ## Requirements
 - Node.js v18 or higher (download at https://nodejs.org — choose LTS)
 
-## Quick start (recommended)
+## Quick start (recommended) — one command
 
 From the repo root:
 
-**Windows** — double-click `setup.bat`, then `start.bat`
-**Mac/Linux** — `./setup.sh`, then `./start.sh`
+**Windows** — double-click `run.bat`
+**Mac/Linux** — `./run.sh`
 
-`setup` installs both `backend/` and `frontend/` dependencies and creates `backend/.env`
-with a securely generated `JWT_SECRET` already filled in — nothing to type. `start` boots
-backend + frontend together in one window (colour-coded `[BACKEND]` / `[FRONTEND]` output)
-and stops both cleanly with a single Ctrl+C. Both are safe to run more than once — `setup`
-skips anything already installed/configured.
+That's it. On the very first run it installs both `backend/` and `frontend/` dependencies
+and creates `backend/.env` with a securely generated `JWT_SECRET` already filled in —
+nothing to type. Every run after that skips straight to starting, since it detects
+everything is already set up. Backend + frontend boot together in one window
+(colour-coded `[BACKEND]` / `[FRONTEND]` output) and stop cleanly with a single Ctrl+C.
 
-**To add your own API key(s):** open `backend/.env` after running `setup` and fill in
-`GEMINI_API_KEY` (see below). The app works with it left blank — AI features just use the
-local rule-based fallback instead.
+**To add your own API key(s):** open `backend/.env` (created after the first run) and fill
+in `GEMINI_API_KEY` (see below). The app works with it left blank — AI features just use
+the local rule-based fallback instead.
+
+Prefer the two steps separate? `setup.bat`/`./setup.sh` (install + configure only) and
+`start.bat`/`./start.sh` (start only, refuses to run until setup has been done) still work
+exactly as before — `run` is just those two combined into one.
 
 ## Run the backend (manual — if you'd rather not use the scripts above)
 
