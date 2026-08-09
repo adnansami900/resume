@@ -37,6 +37,70 @@ function Thumb({ t }) {
       </div>
     );
   }
+  if (t.layout === 'compact') {
+    return (
+      <div style={{ height: '100%', background: '#fff', padding: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+          <div style={{ flex: 1 }}>{bar('60%', a, 0)}{bar('45%', '#334155')}</div>
+          <div style={{ width: '32%' }}>{bar('100%', '#e2e8f0', 0)}{bar('80%', '#e2e8f0', 2)}</div>
+        </div>
+        <div style={{ height: 2, background: '#111', margin: '6px 0 3px' }} />
+        {bar('92%')}{bar('86%')}
+        <div style={{ height: 2, background: '#111', margin: '6px 0 3px' }} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}>{bar('100%', '#cbd5e1', 0)}{bar('100%')}</div>
+          <div style={{ flex: 1 }}>{bar('100%', '#cbd5e1', 0)}{bar('100%')}</div>
+        </div>
+      </div>
+    );
+  }
+  if (t.layout === 'elegant') {
+    return (
+      <div style={{ height: '100%', background: '#fff', padding: 6 }}>
+        <div style={{ borderTop: '1px solid #9ca3af', borderBottom: '1px solid #9ca3af', padding: '5px 0', marginBottom: 5 }}>
+          <div style={{ height: 4, width: '70%', margin: '0 auto', background: '#6b7280', borderRadius: 2 }} />
+          <div style={{ height: 2, width: '40%', margin: '3px auto 0', background: '#d1d5db', borderRadius: 2 }} />
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ width: '36%', borderRight: '1px solid #d1d5db', paddingRight: 5 }}>
+            {bar('80%', '#6b7280', 0)}{bar('95%')}{bar('70%')}
+          </div>
+          <div style={{ flex: 1 }}>{bar('60%', '#6b7280', 0)}{bar('100%')}{bar('92%')}{bar('80%')}</div>
+        </div>
+      </div>
+    );
+  }
+  if (t.layout === 'amber') {
+    return (
+      <div style={{ height: '100%', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ background: a, padding: '7px 6px' }}>
+          {bar('60%', 'rgba(0,0,0,.65)', 0)}{bar('38%', 'rgba(0,0,0,.4)', 3)}
+        </div>
+        <div style={{ display: 'flex', gap: 6, padding: 6, flex: 1 }}>
+          <div style={{ width: '38%', borderRight: '1px solid #e5e7eb', paddingRight: 5 }}>
+            {bar('75%', a, 0)}{bar('95%')}{bar('85%')}
+          </div>
+          <div style={{ flex: 1 }}>{bar('55%', a, 0)}{bar('100%')}{bar('90%')}</div>
+        </div>
+        <div style={{ height: 6, background: a }} />
+      </div>
+    );
+  }
+  if (t.layout === 'slate') {
+    return (
+      <div style={{ height: '100%', background: '#fff' }}>
+        <div style={{ background: '#1f2937', padding: '7px 6px' }}>
+          {bar('55%', '#fff', 0)}{bar('35%', a, 3)}
+        </div>
+        <div style={{ display: 'flex', height: 'calc(100% - 30px)' }}>
+          <div style={{ flex: 1, padding: 6 }}>{bar('50%', '#334155', 0)}{bar('100%')}{bar('92%')}{bar('84%')}</div>
+          <div style={{ width: '38%', padding: 6, background: '#f1f5f9' }}>
+            {bar('80%', '#334155', 0)}{bar('90%')}{bar('70%')}
+          </div>
+        </div>
+      </div>
+    );
+  }
   // single column
   return (
     <div style={{ height: '100%', background: '#fff', padding: 6 }}>
