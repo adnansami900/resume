@@ -8,7 +8,9 @@ ResumeAI v2 — an AI-assisted resume builder / career platform. React 18 (CRA) 
 
 ## Commands
 
-Backend (from `backend/`):
+**Quick start:** from the repo root, `node setup.js` (or `setup.bat` / `./setup.sh`) installs both `backend/` and `frontend/` deps and creates `backend/.env` with a random `JWT_SECRET` pre-filled; then `node start.js` (or `start.bat` / `./start.sh`) boots both servers together with colour-coded `[BACKEND]`/`[FRONTEND]` output and a single Ctrl+C to stop both. `start.js` refuses to run until `setup` has been run (checks for `.env` and `node_modules`) rather than failing confusingly mid-boot. See `setup.js`/`start.js` for the implementation — both are plain Node so they work identically on Windows/Mac/Linux; the `.bat`/`.sh` files are one-line wrappers.
+
+Manual equivalent, backend (from `backend/`):
 ```
 npm install
 cp .env.example .env   # then set JWT_SECRET (16+ random chars); GEMINI_API_KEY optional
